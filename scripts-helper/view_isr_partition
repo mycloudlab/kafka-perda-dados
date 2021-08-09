@@ -1,0 +1,5 @@
+#!/bin/bash 
+set -e
+docker-compose -f $1 exec zk1 /opt/kafka/bin/kafka-topics.sh --describe --zookeeper localhost:2181 --topic testeperda | grep "Partition: 0" |cut -d: -f6
+
+

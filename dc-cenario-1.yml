@@ -1,0 +1,77 @@
+version: "3.9"
+services:
+  zk1:
+    image: adoptopenjdk/openjdk11:centos
+    hostname: zoo
+    restart: always
+    volumes:
+      - ./kafka-versions/start-scripts:/opt/start-scripts
+      - ./kafka-versions/$AMQ_VERSION:/opt/kafka
+    command: /opt/kafka/bin/zookeeper-server-start.sh /opt/kafka/config/zookeeper.properties
+    
+  kafka1:
+    image: adoptopenjdk/openjdk11:centos
+    hostname: kafka1
+    restart: always
+    depends_on:
+      - zk1
+    volumes:
+      - ./kafka-versions/start-scripts:/opt/start-scripts
+      - ./kafka-versions/$AMQ_VERSION:/opt/kafka
+      - ./data/kafka-logs-1/:/tmp/kafka-logs/
+      -  /usr/bin/nc:/usr/bin/nc
+    command: /opt/start-scripts/custom_start_kafka.sh zk1:2181 1 zk1
+   
+  kafka2:
+    image: adoptopenjdk/openjdk11:centos
+    hostname: kafka2
+    restart: always
+    depends_on:
+      - zk1
+    volumes:
+      - ./kafka-versions/start-scripts:/opt/start-scripts
+      - ./kafka-versions/$AMQ_VERSION:/opt/kafka
+      - ./data/kafka-logs-2/:/tmp/kafka-logs/
+      -  /usr/bin/nc:/usr/bin/nc
+    command: /opt/start-scripts/custom_start_kafka.sh zk1:2181 2 zk1
+       
+  kafka3:
+    image: adoptopenjdk/openjdk11:centos
+    hostname: kafka3
+    restart: always
+    depends_on:
+      - zk1
+    volumes:
+      - ./kafka-versions/start-scripts:/opt/start-scripts
+      - ./kafka-versions/$AMQ_VERSION:/opt/kafka
+      - ./data/kafka-logs-3/:/tmp/kafka-logs/
+      -  /usr/bin/nc:/usr/bin/nc
+    command: /opt/start-scripts/custom_start_kafka.sh zk1:2181 3 zk1
+
+  producer:
+    profiles: 
+      - tools
+    image: adoptopenjdk/openjdk11:centos
+    hostname: producer
+    restart: always
+    depends_on:
+      - zk1
+    volumes:
+      - ./kafka-versions/start-scripts:/opt/start-scripts
+      - ./kafka-versions/$AMQ_VERSION:/opt/kafka
+    command: /opt/start-scripts/start_producer.sh
+  
+
+  consumer:
+    profiles: 
+      - tools
+    image: adoptopenjdk/openjdk11:centos
+    hostname: consumer
+    restart: always
+    depends_on:
+      - zk1
+    volumes:
+      - ./kafka-versions/start-scripts:/opt/start-scripts
+      - ./kafka-versions/$AMQ_VERSION:/opt/kafka
+    command: /opt/start-scripts/start_consumer.sh
+  

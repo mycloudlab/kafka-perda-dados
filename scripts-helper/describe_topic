@@ -1,0 +1,3 @@
+#!/bin/bash 
+set -xe
+docker-compose -f $1 exec zk1 /opt/kafka/bin/kafka-topics.sh --describe --zookeeper localhost:2181 --topic testeperda

@@ -1,0 +1,22 @@
+#!/bin/bash 
+set -e
+
+x=1
+while [ $x -le 10 ]
+do
+  echo "Aguardando start do kafka... $x"
+  if [[ $( docker-compose -f $1 logs kafka1 | tail | grep started | wc -l ) -ne 1 ]]; then
+    sleep 1
+  else
+    break
+  fi
+  x=$(( $x + 1 ))
+done
+
+if [[ $x -eq 6 ]]; then
+  echo "Kafka não iniciou, tem algum problema no ambiente que precisa ser corrigido verifique o log dos containeres."
+  exit 1
+else 
+  echo "kafka iniciado."
+fi
+

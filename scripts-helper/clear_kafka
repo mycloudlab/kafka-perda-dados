@@ -1,0 +1,4 @@
+#!/bin/bash 
+set -xe
+
+sudo rm -rf data/kafka-logs* 

@@ -1,0 +1,9 @@
+#!/bin/bash 
+
+BROKER_LIST="$(docker-compose -f $1 exec  kafka1 hostname -i):9092"
+BROKER_LIST="$BROKER_LIST,$(docker-compose -f $1 exec kafka2 hostname -i):9092"
+BROKER_LIST="$BROKER_LIST,$(docker-compose -f $1 exec kafka3 hostname -i):9092"
+BROKER_LIST="$(echo  $BROKER_LIST | tr -d '\r')"
+
+set -xe
+docker-compose -f $1 exec zk1 /opt/kafka/bin/kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list $BROKER_LIST --topic testeperda

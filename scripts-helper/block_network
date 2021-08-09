@@ -1,0 +1,15 @@
+#!/bin/bash 
+set -e
+
+ISR=$2
+
+for ID in $(echo $ISR | tr -d '\r' | tr "," "\n" | tac)
+do
+    IP=$(docker-compose -f ${1} exec kafka${ID} hostname -i | tr -d '\r' )
+    echo "sudo iptables -I DOCKER-ISOLATION-STAGE-1 -d $IP -j DROP # kafka $ID"
+    sudo iptables -I DOCKER-ISOLATION-STAGE-1 -d $IP -j DROP # kafka $ID
+    sleep 20
+    
+done
+
+

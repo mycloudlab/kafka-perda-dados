@@ -1,0 +1,108 @@
+#!/bin/bash 
+set -e
+
+
+TOPOLOGIA=dc-cenario-1.yml
+
+echo "Limpa ambiente..."
+# baixa o cenário 
+
+docker-compose -f $TOPOLOGIA down 
+
+
+echo "Limpando base do kafka..."
+# limpa a pasta do kafka de dados
+scripts-helper/clear_kafka
+
+echo "inicializa ambiente..."
+# inicia ambiente
+docker-compose -f $TOPOLOGIA up -d
+
+echo "aguardando inicialização do kafka..."
+scripts-helper/verify_started_kafka $TOPOLOGIA
+
+echo "criando tópico..."
+scripts-helper/create_topic $TOPOLOGIA
+
+
+echo "visualiza offsets..."
+scripts-helper/view_offsets $TOPOLOGIA 
+
+
+echo "describe topico..."
+scripts-helper/describe_topic $TOPOLOGIA 
+
+echo "iniciando produtor de mensagens em segundo plano..."
+PRODUCER=$(docker-compose -f $TOPOLOGIA  run -d producer)
+
+echo "aguardando a produção de algumas mensagens..."
+sleep 5
+
+echo "Iniciando o consumer em segundo plano..."
+CONSUMER=$(docker-compose -f $TOPOLOGIA  run -d consumer)
+
+echo "aguardando o consumo de algumas mensagens..."
+sleep 5
+
+
+echo "Parando consumidor e produtor..."
+docker rm -f $PRODUCER
+docker rm -f $CONSUMER
+
+echo "visualiza offsets..."
+scripts-helper/view_offsets $TOPOLOGIA 
+
+
+echo "describe topico..."
+scripts-helper/describe_topic $TOPOLOGIA 
+
+
+
+echo "Identificando o leader de partição 0 ..."
+LEADER=$(scripts-helper/view_leader_partition $TOPOLOGIA)
+echo "Leader da partition 0: $LEADER"
+
+echo "Obtendo o ISR da partição..."
+ISR=$(scripts-helper/view_isr_partition $TOPOLOGIA)
+echo "ISR partition 0: $ISR"
+
+
+echo "Bloqueando a rede deixando o leader da partição por último..."
+scripts-helper/block_network $TOPOLOGIA $ISR
+sleep 3
+
+echo "Simulando a perda de disco no líder..."
+echo sudo rm -rf data/kafka-logs-$LEADER/*
+sudo rm -rf data/kafka-logs-$LEADER/* > /dev/null
+
+echo "Visualizando como ficou o disco..."
+echo tree -h data/kafka-logs-*/testeperda-0
+tree -h data/kafka-logs-*/testeperda-0
+
+
+
+echo "Aguarde 5 segundos"
+sleep 5
+
+
+echo "Liberando a rede começando pelo leader..."
+scripts-helper/unblock_network $TOPOLOGIA $ISR
+echo "Aguarde 10 segundos"
+sleep 10
+
+echo "visualiza offsets..."
+scripts-helper/view_offsets $TOPOLOGIA 
+
+
+echo "describe topico..."
+scripts-helper/describe_topic $TOPOLOGIA 
+
+echo "Vendo o disco..."
+echo tree -h data/kafka-logs-*/testeperda-0
+tree -h data/kafka-logs-*/testeperda-0
+
+
+echo "Limpa ambiente..."
+# baixa o cenário 
+
+docker-compose -f $TOPOLOGIA down 
